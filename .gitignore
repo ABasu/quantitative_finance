@@ -5,7 +5,7 @@ apikey.cfg
 ### Python ###
 *.py[cod]
 *.ipynb[c]
-*.ipynb
+# *.ipynb
 
 # C extensions
 *.so
