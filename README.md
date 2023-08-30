@@ -1,4 +1,4 @@
-AlphaVantage free account limit: 5 API requests per minute and 500 
+AlphaVantage free account limit: 5 API requests per minute and 500 per day
 
 Modules:
 * alphavantage: Returns parsed tuples
