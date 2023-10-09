@@ -28,6 +28,7 @@ parser.add_argument('-o',  '--output_directory', default='~/Desktop/Server/marke
 parser.add_argument('-k',  '--alphavantage_api_key', default='apikey.cfg', help='The file with the API key used to retrieve data from alphavantage', type=str)
 parser.add_argument('-af', '--alphavantage_api_function', default='TIME_SERIES_DAILY', help='The API call used to retrieve data from alphavantage', type=str)
 parser.add_argument('-l',  '--log_file', default='_logfile.log', help='Log file. Written to output directory/API_call/.', type=str)
+parser.add_argument('-u',  '--update', default=False, help='Update mode. Only run queries for tickers already on disk.', type=bool)
 parser.add_argument('-f',  '--first_ticker', default=None, help='The first ticker in the list to start with.', type=str)
 parser.add_argument('-p',  '--parameters', default=[], help='Key=Value (no space) pairs to be passed to API call.', metavar='KEY=VALUE', nargs='+')
 
@@ -52,6 +53,7 @@ output_directory = os.path.expanduser(args.output_directory)
 av_api_key = args.alphavantage_api_key
 av_api_function = args.alphavantage_api_function
 log_file = args.log_file
+update = args.update
 first_ticker = args.first_ticker
 current_ticker = None
 # Parse parameters into integer, float, or string
@@ -86,24 +88,20 @@ def check_overwrite_tickerfile(ticker, api_function, exchange, ticker_df):
     """
     ticker_file = get_path(ticker, api_function, exchange)
     if os.path.exists(ticker_file):
-        logging.info('{:>6}: Reading {}.'.format(ticker, ticker_file))
-        # File is either CSV (pandas) or JSON
+        logging.info('{:>15}: Reading {}.'.format(ticker, ticker_file))
         if ticker_file.lower().split('.')[-1] == 'csv':
             ticker_df_old = pd.read_csv(ticker_file)
             if len(ticker_df) > len(ticker_df_old):
-                logging.info('{:>6}: Updating {}.'.format(ticker, ticker_file))
+                logging.info('{:>15}: Updating {}.'.format(ticker, ticker_file))
                 ticker_df.to_csv(ticker_file, float_format='%.2f')
             else:
                 logging.info('{:>6}: {} already up to date.'.format(ticker, ticker_file))
-        else:
-            # JSON handler goes here
-            pass
     else:
         logging.info('{:>6}: Creating file {}.'.format(ticker, ticker_file))
         ticker_df.to_csv(ticker_file, float_format='%.2f')
     
 ##############################################################################
-def exit_gracefully():
+def exit_gracefully(sig, frame):
     """
     Logs the ticker about to be retreived, but incomplete, when exiting.
 
@@ -257,9 +255,19 @@ if __name__ == "__main__":
     dfmt = '%y-%m-%d  %H:%M:%S'
     logging.basicConfig(handlers=(fh, sh), format=fmt, datefmt=dfmt, level=logging.INFO)
 
-    tickers = parse_ticker_list(ticker_list)      # Get tickers
+    # Get tickers
+    tickers = parse_ticker_list(ticker_list)
+    # If we're in update mode, find out which tickers in the list don't exist on disk
+    if update:    
+        tickers_ignored = [ticker for ticker in tickers if not os.path.exists(get_path(ticker, av_api_function, exchange))]
+        logging.info('Running in update mode. Following tickers don\'t have existing files and are being ignored: {}'.format(','.join(tickers_ignored)))
+        tickers = [ticker for ticker in tickers if ticker not in tickers_ignored]
+    
+    # Get last / first ticker
     if first_ticker == None:
-        first_ticker = parse_log_last_ticker(log_file)    # Get last / first ticker
+        first_ticker = parse_log_last_ticker(log_file)
+        if first_ticker not in tickers:             # We make sure the first ticker exists in our list
+            first_ticker = None                         # e.g switching to/from update mode
     
     api_key = av.get_api_key(config_file=av_api_key)
     n_queries = 0
@@ -278,10 +286,10 @@ if __name__ == "__main__":
 
             # We don't go over max_queries if it's set
             if max_queries != None:
-                logging.info('{} of {} daily queries done.'.format(n_queries, max_queries))
+                logging.info('{} of {} queries.'.format(n_queries+1, max_queries))
                 if n_queries >= max_queries:
                     logging.error('{}: Quitting before retrieving data - max queries reached.'.format(ticker))
-                    break
+                    sys.exit(0)
             
             pause(ticker, n)
             ticker_data, nq = av.call_api(ticker, av_api_function, api_key, \

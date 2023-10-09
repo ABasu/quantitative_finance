@@ -14,8 +14,8 @@ import pandas as pd
 import numpy as np
 import seaborn as sns
 
-#from . import stats    # For Jupyter notebooks
-import stats           # For everything else
+from . import stats    # For Jupyter notebooks
+#import stats           # For everything else
 
 logging.basicConfig(format = '%(funcName)s %(asctime)-25s %(message)s', level = logging.INFO)
  
@@ -60,7 +60,7 @@ class Ticker(object):
             self.splits = timeseries.splits
 
     def read_csv(self, ticker, rootdir, \
-                 av_func, adjustsplits=True):
+                 av_func, adjustsplits=False):
         """
         Reads a csv timeseries and optionally calls adjustsplits on it. Resulting 
         columns are labeled 'Date' and 'Close'
@@ -84,7 +84,7 @@ class Ticker(object):
         ticker_file = os.path.join(os.path.expanduser(rootdir), av_func, ticker.upper()+'.csv')
         try:
             timeseries = pd.read_csv(ticker_file, index_col=[0], parse_dates=['Date'])
-            timeseries.columns = ['Date', 'Open', 'High', 'Low', 'Close', 'Volume']
+            timeseries.columns = ['Open', 'High', 'Low', 'Close', 'Volume']
             timeseries.reset_index(drop=True)
             self.timeseries = timeseries
             self.column = 'Close'
