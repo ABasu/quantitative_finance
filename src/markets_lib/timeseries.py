@@ -21,7 +21,7 @@ logging.basicConfig(format = '%(funcName)s %(asctime)-25s %(message)s', level = 
  
 ##############################################################################
 class Ticker(object):
-    def __init__(self, ticker=None, timeseries=None, rootdir='~/Desktop/Server/market_data/', av_func='TIME_SERIES_DAILY'):
+    def __init__(self, ticker=None, timeseries=None, rootdir='~/Desktop/Server/market_data/', av_func='TIME_SERIES_DAILY.BSE'):
         """
         Initializes a ticker-timeseries object.
 
