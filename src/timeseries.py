@@ -2,11 +2,6 @@
 # encoding=utf8
 """
 A set of functions to work with financial time-series
-
-Dataframes have the following attributes:
-    Price_Type: 'Unadjusted', 'Adjusted'
-    Pct_Window: integer
-    Splits: list of (date, ratio1, ratio2) tuples
 """
 
 import datetime, logging, operator, os, re
@@ -21,43 +16,16 @@ logging.basicConfig(format = '%(funcName)s %(asctime)-25s %(message)s', level = 
  
 ##############################################################################
 class Ticker(object):
-    def __init__(self, ticker=None, timeseries=None, rootdir='~/Desktop/Server/market_data/', av_func='TIME_SERIES_DAILY.BSE'):
-        """
-        Initializes a ticker-timeseries object.
-
-        Parameters
-        ----------
-        ticker : str, optional
-            A stock ticker. The default is None.
-        timeseries : TYPE, optional
-            DESCRIPTION. The default is None.
-
-        Returns
-        -------
-        self.
-
-        """
+    def __init__(self, ticker=None, timeseries=None, data_pipeline='csv'):
         self.timeseries = None
         self.ticker = ticker.upper()
-        self.column = None      # The column to focus on for single column 
-                                # operations like high_low
-        
-        # These properties of the overall timeseries will be passed to a new
-        # instance (subset etc) from the current timeseries
-        self.price_type = None
-        self.splits = None
+        self.attributes = {}
 
-        # These properties would not be passed, they would need to be 
-        # recalculated for a new subset
-        self.beta = None
-        
         if ticker != None:
             self.read_csv(ticker, rootdir, av_func)
         elif isinstance(timeseries, pd.DataFrame):
             self.timeseries = timeseries.timeseries
             self.ticker = timeseries.ticker
-            self.price_type = timeseries.price_type
-            self.splits = timeseries.splits
 
     def read_csv(self, ticker, rootdir, \
                  av_func, adjustsplits=False):
